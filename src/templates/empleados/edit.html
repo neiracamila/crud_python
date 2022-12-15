@@ -1,32 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-    <title>Edit</title>
-</head>
-<body>
+{% include 'header.html' %}
+<!-- {% for empleado in empleados  %} -->
+<form action="/update" method="post" enctype="multipart/form-data">
 
-    
-    {% for empleado in empleados  %}
-    <form action="/update" method="post" enctype="multipart/form-data">
-        ID:
-        <input type="text" value="{{empleado[0]}}" name="txtId" id="txtId">
-        <br>
-        Nombre:
-        <input type="text" value="{{empleado[1]}}" name="txtNombre" id="txtNombre" />
-        <br>
-        Correo:
-        <input type="email" value="{{empleado[2]}}" name="txtCorreo" id="txtCorreo" />
-        <br>
-        Foto de perfil:
-            {{empleado[3]}}
-        
-        <input type="file" name="txtFoto" id="txtFoto" />
-        <br>
-        <input type="submit" value="Guardar">
-    </form>
-    {% endfor %}
-</body>
-</html>
+    <label for="txtId">ID: </label>
+    <input readonly type="text" value="{{empleado[0]}}" name="txtId" id="txtId">
+    <br>
+    <label for="txtNombre"> Nombre: </label>
+    <input type="text" value="{{empleado[1]}}" name="txtNombre" id="txtNombre" />
+    <br>
+    <label for="txtCorreo">Correo:</label>
+    <input type="email" value="{{empleado[2]}}" name="txtCorreo" id="txtCorreo" />
+    <br>
+    <label for="txtFoto">Foto de perfil:</label>
+    Foto anterior: {{empleado[3]}}
+    <input type="file" name="txtFoto" id="txtFoto" />
+    <br>
+    <input type="submit" value="Modificar empleado">
+</form>
+<!-- {% endfor %} -->
+{% include 'footer.html' %}
