@@ -20,13 +20,14 @@
   <main>
     <h1>Hola desde Flask</h1>
 
-    <table>
-      <thead>
+    <table class="table table-light">
+      <thead class="thead-light">
         <tr>
-          <th>#</th>
+          <th>#id</th>
           <th>Foto</th>
           <th>Nombre</th>
           <th>Correo</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -36,6 +37,7 @@
           <td>{{empleado[3]}}</td>
           <td>{{empleado[1]}}</td>
           <td>{{empleado[2]}}</td>
+          <td> <a href="/edit/{{empleado[0]}}"> Editar </a> | <a href="/destroy/{{empleado[0]}}"> Eliminar </a></td>
         </tr>
         {% endfor %}
       </tbody>
