@@ -1,5 +1,4 @@
-from flask import Flask, redirect    # incluimos todo lo necesario para el uso de flask
-from flask import render_template, request, redirect # incluimos para el renderizado de template 
+from flask import Flask, render_template, request, redirect # incluimos para el renderizado de template 
 from flaskext.mysql import MySQL  
 from datetime import datetime
 import os
@@ -13,8 +12,8 @@ app.config['MYSQL_DATABASE_PASSWORD'] = 'root'
 app.config['MYSQL_DATABASE_DB'] = 'empleados'
 mysql.init_app(app)
 
-CARPETA= os.path.join('/uploads')    # referencia a la carpeta de fotos
-app.config['CARPETA']=CARPETA    
+UPLOADS = os.path.join('uploads')    # referencia a la carpeta de fotos
+app.config['UPLOADS']= UPLOADS    
 
 @app.route('/')     # para el ruteo de index.html cuando  escriba / en el servidor
 def index():
@@ -29,17 +28,20 @@ def index():
 
 @app.route('/destroy/<int:id>')
 def destroy(id):
+    sql='DELETE FROM empleados WHERE id=%s;'
     conn=mysql.connect()
     cursor=conn.cursor()
-    cursor.execute("DELETE FROM empleados WHERE id=%s", (id))
+    cursor.execute(sql, id)
     conn.commit()
+
     return redirect('/')
 
 @app.route('/edit/<int:id>')
 def edit(id):
+    sql='SELECT * FROM empleados WHERE id=%s;'
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM empleados WHERE id=%s", (id))
+    cursor.execute(sql, id)
     empleados=cursor.fetchall()
     conn.commit()
     return render_template('empleados/edit.html', empleados=empleados)
@@ -51,29 +53,30 @@ def update():
     _foto=request.files['txtFoto']
     id=request.form['txtId']
 
-    sql='UPDATE empleados SET nombre=%s, correo=%s WHERE id=%s'
     datos=(_nombre, _correo, id)
 
     conn = mysql.connect()
     cursor=conn.cursor()
-    now=datetime.now()
-    tiempo=now.strftime("%Y%H%M%S")
-    if _foto.filename != '':
+    
+    if _foto.filename != '':    
+        now=datetime.now()
+        tiempo=now.strftime("%Y%H%M%S")
         nuevoNombreFoto=tiempo+_foto.filename
-        _foto.save('./uploads/'+nuevoNombreFoto)
-        cursor.execute("SELECT foto FROM empleados WHERE id=%s", id)
-        fila=cursor.fetchall()
+        _foto.save('src/uploads/'+nuevoNombreFoto)
+        
+    sql= 'SELECT foto FROM empleados WHERE id=%s;'    
+    cursor.execute(sql, id)
 
-        os.remove(os.path.join(app.config['CARPETA'], fila[0][0]))
-        cursor.execute('UPDATE empleados SET foto=%s WHERE id=%s', (nuevoNombreFoto, id))
-        conn.commit()
+    nombreFoto=cursor.fetchone()[0]
+
+    os.remove(os.path.join(app.config['UPLOADS'], nombreFoto))
+
+    sql='UPDATE empleados SET nombre=%s, correo=%s WHERE id=%s;'
+    cursor.execute(sql,id)
+    conn.commit()
+
     return redirect('/')
 
-
-    # cursor.execute(sql, datos)
-    # conn.commit()
-
-    # return redirect('/')
 
 @app.route('/create')
 def create():
@@ -91,23 +94,17 @@ def store():
     
     if _foto.filename != '':
         nuevoNombreFoto = tiempo + '_' + _foto.filename
-        _foto.save("src/uploads/" + nuevoNombreFoto)
+        _foto.save('src/uploads/' + nuevoNombreFoto)
    
         sql = "INSERT INTO empleados (nombre, correo, foto) VALUES (%s, %s, %s);"
         datos = (_nombre, _correo,nuevoNombreFoto)
-
-        # sql = "SELECT * FROM empleados;"
-        # cursor.execute(sql)
-        # empleados = cursor.fetchall()
 
         conn = mysql.connect()
         cursor = conn.cursor()
         cursor.execute(sql, datos)
         conn.commit()
 
-    return render_template('empleados/index.html') 
-
-
+    return redirect('/') 
 
 
 if __name__=='__main__':        # para que python p  ueda interpretar  como (correr flask) empezar a correr la aplicacion
