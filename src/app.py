@@ -12,36 +12,54 @@ app.config['MYSQL_DATABASE_PASSWORD'] = 'root'
 app.config['MYSQL_DATABASE_DB'] = 'empleados'
 mysql.init_app(app)
 
-UPLOADS = os.path.join('uploads')    # referencia a la carpeta de fotos
+UPLOADS = os.path.join('src/uploads')    # referencia a la carpeta de fotos
 app.config['UPLOADS']= UPLOADS    
 
 @app.route('/')     # para el ruteo de index.html cuando  escriba / en el servidor
 def index():
     conn = mysql.connect()
     cursor = conn.cursor()
-    sql = "SELECT * FROM empleados;"
+    sql = 'SELECT * FROM empleados;'
     cursor.execute(sql)
     empleados = cursor.fetchall()
     conn.commit()
 
     return render_template('empleados/index.html', empleados = empleados)   # renderizo la pagina index.html    
 
-@app.route('/destroy/<int:id>')
-def destroy(id):
-    sql='DELETE FROM empleados WHERE id=%s;'
-    conn=mysql.connect()
-    cursor=conn.cursor()
-    cursor.execute(sql, id)
-    conn.commit()
+@app.route('/create')
+def create():
+    return render_template('empleados/create.html')
 
-    return redirect('/')
+
+@app.route('/store', methods=["POST"])
+def store():
+    _nombre = request.form['txtNombre']
+    _correo = request.form['txtCorreo']
+    _foto = request.files['txtFoto']
+    
+    now = datetime.now()
+    tiempo = now.strftime("%Y%H%M%S")
+    
+    if _foto.filename != '':
+        nuevoNombreFoto = tiempo + '_' + _foto.filename
+        _foto.save('src/uploads/' + nuevoNombreFoto)
+   
+        sql = f'INSERT INTO empleados (nombre, correo, foto) VALUES ("{_nombre}", "{_correo}", "{nuevoNombreFoto}");'
+        # datos = (_nombre, _correo,nuevoNombreFoto)
+
+        conn = mysql.connect()
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        conn.commit()
+
+    return redirect('/') 
 
 @app.route('/edit/<int:id>')
 def edit(id):
-    sql='SELECT * FROM empleados WHERE id=%s;'
+    sql= f'SELECT * FROM empleados WHERE id="{id}";'
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute(sql, id)
+    cursor.execute(sql)
     empleados=cursor.fetchall()
     conn.commit()
     return render_template('empleados/edit.html', empleados=empleados)
@@ -64,47 +82,46 @@ def update():
         nuevoNombreFoto=tiempo+_foto.filename
         _foto.save('src/uploads/'+nuevoNombreFoto)
         
-    sql= 'SELECT foto FROM empleados WHERE id=%s;'    
-    cursor.execute(sql, id)
+        sql= f'SELECT foto FROM empleados WHERE id="{id}";'    
+        cursor.execute(sql)
+        conn.commit()
+        
+        nombreFoto=cursor.fetchone()[0]
+        borrarEstaFoto = os.path.join(app.config['UPLOADS'], nombreFoto)
+        
+        os.remove(os.path.join(app.config['UPLOADS'], nombreFoto))
 
-    nombreFoto=cursor.fetchone()[0]
+        sql= f'UPDATE empleados SET foto="{nuevoNombreFoto}" WHERE id="{id}";'
+        cursor.execute(sql)
+        conn.commit()
 
-    os.remove(os.path.join(app.config['UPLOADS'], nombreFoto))
-
-    sql='UPDATE empleados SET nombre=%s, correo=%s WHERE id=%s;'
-    cursor.execute(sql,id)
+    sql= f'UPDATE empleados SET nombre="{_nombre}", correo="{_correo}" WHERE id="{id}";'
+    cursor.execute(sql)
     conn.commit()
 
     return redirect('/')
 
+@app.route('/destroy/<int:id>')
+def destroy(id):
+    conn=mysql.connect()
+    cursor=conn.cursor()
 
-@app.route('/create')
-def create():
-    return render_template('empleados/create.html')
+    sql= f'SELECT foto FROM empleados WHERE id="{id}";'
+    cursor.execute(sql)
 
+    nombreFoto= cursor.fetchone()[0]
 
-@app.route('/store', methods=["POST"])
-def store():
-    _nombre = request.form['txtNombre']
-    _correo = request.form['txtCorreo']
-    _foto = request.files['txtFoto']
+    try:
+        os.remove(os.path.join(app.config['UPLOADS'], nombreFoto))
+    except:
+        pass
+
+    sql= f'DELETE FROM empleados WHERE id="{id}";'
+    cursor.execute(sql)
     
-    now = datetime.now()
-    tiempo = now.strftime("%Y%H%M%S")
-    
-    if _foto.filename != '':
-        nuevoNombreFoto = tiempo + '_' + _foto.filename
-        _foto.save('src/uploads/' + nuevoNombreFoto)
-   
-        sql = "INSERT INTO empleados (nombre, correo, foto) VALUES (%s, %s, %s);"
-        datos = (_nombre, _correo,nuevoNombreFoto)
+    conn.commit()
 
-        conn = mysql.connect()
-        cursor = conn.cursor()
-        cursor.execute(sql, datos)
-        conn.commit()
-
-    return redirect('/') 
+    return redirect('/')
 
 
 if __name__=='__main__':        # para que python p  ueda interpretar  como (correr flask) empezar a correr la aplicacion
