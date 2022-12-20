@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect # incluimos para el renderizado de template 
+from flask import Flask, render_template, request, redirect, send_from_directory # incluimos para el renderizado de template 
 from flaskext.mysql import MySQL  
 from datetime import datetime
 import os
@@ -14,6 +14,11 @@ mysql.init_app(app)
 
 UPLOADS = os.path.join('src/uploads')    # referencia a la carpeta de fotos
 app.config['UPLOADS']= UPLOADS    
+
+@app.route('/fotodeusuario/<path:nombreFoto>')
+def uploads(nombreFoto):
+    return send_from_directory(os.path.join('uploads'), nombreFoto)
+
 
 @app.route('/')     # para el ruteo de index.html cuando  escriba / en el servidor
 def index():
@@ -44,25 +49,28 @@ def store():
         nuevoNombreFoto = tiempo + '_' + _foto.filename
         _foto.save('src/uploads/' + nuevoNombreFoto)
    
-        sql = f'INSERT INTO empleados (nombre, correo, foto) VALUES ("{_nombre}", "{_correo}", "{nuevoNombreFoto}");'
-        # datos = (_nombre, _correo,nuevoNombreFoto)
+        sql = 'INSERT INTO empleados (nombre, correo, foto) VALUES (%s, %s, %s);'
+        datos = (_nombre, _correo,nuevoNombreFoto)
 
         conn = mysql.connect()
         cursor = conn.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, datos)
         conn.commit()
 
     return redirect('/') 
 
 @app.route('/edit/<int:id>')
 def edit(id):
-    sql= f'SELECT * FROM empleados WHERE id="{id}";'
+    sql= 'SELECT * FROM empleados WHERE id=%s;'
     conn = mysql.connect()
     cursor = conn.cursor()
-    cursor.execute(sql)
-    empleados=cursor.fetchall()
+    cursor.execute(sql, id)
+    empleado=cursor.fetchone()
     conn.commit()
-    return render_template('empleados/edit.html', empleados=empleados)
+    print(empleado)
+    cursor.close()
+    conn.close
+    return render_template('empleados/edit.html', empleado=empleado)
 
 @app.route('/update', methods=['post'])
 def update():
@@ -95,8 +103,8 @@ def update():
         cursor.execute(sql)
         conn.commit()
 
-    sql= f'UPDATE empleados SET nombre="{_nombre}", correo="{_correo}" WHERE id="{id}";'
-    cursor.execute(sql)
+    sql= 'UPDATE empleados SET nombre=%s, correo=%s WHERE id=%s;'
+    cursor.execute(sql, datos)
     conn.commit()
 
     return redirect('/')
@@ -127,3 +135,4 @@ def destroy(id):
 if __name__=='__main__':        # para que python p  ueda interpretar  como (correr flask) empezar a correr la aplicacion
     app.run(debug=True)         # ejecuta la aplicacion en modo debug
 
+# min 33.35 de la clase 30
